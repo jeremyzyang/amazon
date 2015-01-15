@@ -1,191 +1,60 @@
-install.packages("Quandl")
-library(Quandl)
-install.packages("plyr")
-library('plyr')
+###################################
+#### cleaning and manipulation ####
+###################################
 
-
-rm(toy1)
-
-
-arts <- readLines("C:/Users/Jeremy/Desktop/Workspace/R/amazon/arts.txt",10)
-arts[1:5]
-arts <- paste("[", paste(arts,collapse=''), "]")
-length(arts)
-head(arts)
-
-arts
-
+#### read json text and transform to data frame
 install.packages('RJSONIO')
 install.packages('rjson')
 require(RJSONIO)
 require(rjson)
 
-a <- fromJSON(arts)
-a[sapply(a, is.null)] <- NULL
-c <- as.data.frame(do.call(rbind, a))
+cell_all <- readLines("C:/Users/vsingh/Desktop/amazon/cell_phone.txt") # specify the path  
+cell_string <- paste("[", paste(cell_all,collapse=",")) # modify the format
+cell_sub <- substr(cell_string,1,nchar(cell_string)-3)
+cell_sub <- paste(cell_sub,']')
 
+x <- substr(cell_sub,1,2000);x # check the head of json string
+y <- substr(cell_sub,nchar(cell_sub)-2000,nchar(cell_sub));y # check the tail of json string
 
+cell <- fromJSON(cell_sub) # json string to data frame
+cell[sapply(cell, is.null)] <- NULL
+cell.df <- as.data.frame(do.call(rbind, cell))
 
-library(stringr)
+dim(cell.df) # check the dimension and the head
+head(cell.df)
 
+cell.df[,3] <- as.Date(as.POSIXct(as.numeric(as.character(cell.df[,3])), origin="1970-01-01")) # translate unix time to real time
+cell.df[1:5,] 
+colnames(cell.df) # check variable names
 
-d <- as.Date(as.POSIXct(as.numeric(as.character(c[,3])), origin="1970-01-01"))
+write.csv(c,'C:/Users/Jeremy/Desktop/R_example.csv') # write data frame into csv
 
-head(d)
-
-###################### split review/helpfulness into two columns
-
-nrow(c)
-
-str1 <- 1:nrow(c)
-str2 <- 1:nrow(c)
-
-for (i in 1:nrow(c)) {
-str <- strsplit(as.character(d[i,1]),'/')
-str <- unlist(str)
-str1[i] <- str[1]
-str2[i] <- str[2]
-}
-
-colnames(c)
-c$review.useful <- str1
-c$review.total <- str2
-
-head(c)
-
-
-c <- c[-c(5,6,10)]
-colnames(c)
-head(c)
-
-############################################
-
-as.POSIXct(val, origin="1970-01-01")
-
-write.csv(c,'C:/Users/Jeremy/Desktop/R_example.csv')
-write.table(c, "C:/Users/Jeremy/Desktop/R_example.txt", sep="\t")
-
-f <- read.table("C:/Users/Jeremy/Desktop/arts.txt",sep='\t')
-
-############################################
-# parse category data
-total <- 2441576
-cat <- read.table("C:/Users/Jeremy/Desktop/Workspace/R/e.txt",sep=",",fill=T,quote="\"",comment.char="",colClasses=selection)
-cat$V1
-dim(cat)
-tail(cat,5)
-
-cat.book <- cat[which(cat$V2=='Books'),]
-dim(cat.book)
-
-head(cat.book)
-head(cat.book$V1,50)
-tail(cat$V1,200)
-cat[31:33,]
-
-selection = c(rep('character',5),c(rep('NULL',11)))
-
-
-#############################################
-# 
-
-all <- 12,886,488
-books.all <- readLines("C:/Users/vsingh/Desktop/amazon/books.txt",all) 
-
-# first 2,000,000 entries
-books <- readLines("C:/Users/vsingh/Desktop/amazon/books.txt",n=1000000) 
-
-books_string <- paste("[", paste(books,collapse=""))
-books_string
-
-books_sub <- substr(books_string,1,nchar(books_string)-1)
-books_sub
-
-books_sub <- paste(books_sub,']')
-books_sub
-
-x= 'goodness'
-str(x)
-x
-
-install.packages('RJSONIO')
-install.packages('rjson')
-require(RJSONIO)
-require(rjson)
-
-b <- fromJSON(books_sub)
-class(b)
-str(b)
-
-b[sapply(b, is.null)] <- NULL
-
-
-rm(time)
-
-
-df <- as.data.frame(do.call(rbind, b))
-
-dim(df)
-
-df
-
-
-# translate time 
-
-time <- as.Date(as.POSIXct(as.numeric(as.character(df[,3])), origin="1970-01-01"))
-
-head(df)
-
-df[,3] <- time
-df[1:5,]
-
-colnames(df)
-
-df <- df[c(-6,-10)]
-
-write.csv(c,'C:/Users/Jeremy/Desktop/R_example.csv')
-write.table(c, "C:/Users/Jeremy/Desktop/R_example.txt", sep="\t")
-
-f <- read.table("C:/Users/Jeremy/Desktop/arts.txt",sep='\t')
-str(f)
-
-
-# read a specific line 
+#### read only specified columns (separate review text from other variables) to avoid buffer overflow
 selection <- c('NULL','character',rep('NULL',3),'character',rep('NULL',3),'character',rep('NULL',3),'character',rep('NULL',3),'character',rep('NULL',7),'character',rep('NULL',3),'character',rep('NULL',3),'character',rep('NULL',5))
 length(selection)
-
 selection.text <- c(rep('NULL',37),'character','NULL')
 length(selection.text)
 
-e <- read.table("C:/Users/vsingh/Desktop/amazon/books.txt",nrow=12886488,colClasses=selection)
-dim(e)
-object_size(e)
-class(e)
+e <- read.table("C:/Users/vsingh/Desktop/amazon/books.txt",nrow=12886488,colClasses=selection); dim(e)
+object_size(e); class(e)
 head(e,20)
 
-t <- read.table("C:/Users/vsingh/Desktop/amazon/books.txt",nrow=12886488,colClasses=selection.text)
-dim(t)
+t <- read.table("C:/Users/vsingh/Desktop/amazon/books.txt",nrow=12886488,colClasses=selection.text); dim(t)
 
+#### cleaning and reformatting the data frame 
 id <- 1:nrow(t)
 t$id <- id
 name <- c('text','id')
 colnames(t) <- name
-
 t <- t[c('id','text')]
 t[1:5,]
-
 name <- c('profileName','price','time','productID','helpfulness','userID','title','score')
 colnames(e) <- name
-
 time <- as.Date(as.POSIXct(as.numeric(as.character(e[,3])), origin="1970-01-01"))
 e[,3] <- time
-
 t <- time[time>='2000-01-01']
 head(t)
 length(t)
-
-e[1:10,5]
-
 nrow(e)
 str1 <- 1:nrow(e)
 str2 <- 1:nrow(e)
@@ -200,35 +69,16 @@ for (i in 1:nrow(e)){
 e$helpfulness_useful <- str1
 e$helpfulness_total <- str2
 
-head(e,10)
-e <- e[-5]
-
-write.csv(e,'C:/Users/vsingh/Desktop/amazon/books.csv')
-write.csv(t,'C:/Users/vsingh/Desktop/amazon/books_text.csv')
-
-review <- read.csv("C:/Users/vsingh/Desktop/amazon/books_reviews.csv")
-book.review <- review
-head(book.review)
-dim(book.review)
-
-book.review.t <- book.review[1:5000,]
-head(book.review.t)
-
-###### category
+##### process category info and merge with review data
 selection = c(rep('character',8),c(rep('NULL',8)))
-cat <- read.table("C:/Users/vsingh/Desktop/amazon/e.txt",sep=",",fill=T,quote="\"",comment.char="",colClasses=selection)
-dim(cat)
-head(cat,50)
+cat <- read.table("C:/Users/vsingh/Desktop/amazon/cat.txt",sep=",",fill=T,quote="\"",comment.char="",colClasses=selection)
 
-book.cat <- cat[which(cat$V2=='Books'),]
-dim(book.cat)
+cell.cat <- cat[which(cat$V2=="Books"),]
+dim(cell.cat)
+table(cell.cat$V6)
 
 name <- c('productID','Main_Cat','Sub_Cat1','Sub_Cat2','Sub_Cat3','Sub_Cat4','Sub_Cat5','Sub_Cat6')
 colnames(book.cat) <- name
-head(book.cat)
-
-book.cat.t <- book.cat[1:2000,]
-head(book.cat.t)
 
 book.review.cat <- merge(book.review,book.cat,by='productID')
 head(book.review.cat,50)
@@ -236,10 +86,13 @@ tail(book.review.cat)
 
 write.csv(book.review.cat,"C:/Users/vsingh/Desktop/amazon/books_reviews_with_cat.csv")
 
+#### add a new variable as #review count for each productID
 install.packages('dplyr')
 require(dplyr)
 
-books.group <- group_by(book.review.cat,productID)
+book.reviews.cat <- read.csv("C:/Users/vsingh/Desktop/amazon/books_reviews_with_cat.csv")
+books.group <- group_by(book.reviews.cat,productID)
+dim(book.reviews.cat)
 
 books.group <- mutate(books.group, numReviews=n())
 head(books.group)
@@ -247,50 +100,95 @@ head(books.group)
 select(books.group,productID,numReviews)
 head(books.group)
 book.cat.num <- as.data.frame(books.group)
-dim()
+dim(book.cat.num)
 
-write.csv(books.group,"C:/Users/vsingh/Desktop/amazon/books_reviews_with_cat.csv")
+write.csv(book.reviews.cat.new,"C:/Users/vsingh/Desktop/amazon/books_reviews_with_cat_new.csv")
 
+head(book.reviews.cat)
+book.reviews.cat.new <- book.reviews.cat[,-c(1,4,7)]
+head(book.reviews.cat.new)
 
-s <- "how are you doing"
-length(s)
+save <- book.reviews.cat.new[which(book.reviews.cat.new$price!='unknown'),]
+head(save)
+head(book.reviews.cat.new)
 
-sapply(gregexpr("\\W+", s), length)
+write.csv(book.reviews.cat.new,"C:/Users/vsingh/Desktop/amazon/books_with_price.csv")
 
-###################
-## sentiment analysis
+check <- read.csv("C:/Users/vsingh/Desktop/amazon/books_with_price.csv"); dim(check)
+check2 <- check[which(check$price!='unknown'),]
 
-###################
-## twitter example
-install.packages('twitteR',dependencies=T)
-library(twitteR)
+#### add a kindle version dummy for each productID 
+table(books$Sub_Cat1) # Politics & Social Sciences
+table(books$Sub_Cat2)
+table(books$Sub_Cat3) # Kindle eBooks
+table(books$Sub_Cat4) # Kindle Store
+table(books$Sub_Cat5) 
+table(books$Sub_Cat6) 
 
-tweets <- searchTwitter('#abortion',n=1500)
+politics.kindle <- politics[which(politics$Sub_Cat3=="Kindle Store"|politics$Sub_Cat3=="Kindle eBooks"|politics$Sub_Cat4=="Kindle Store"|politics$Sub_Cat4=="Kindle eBooks"|politics$Sub_Cat5=="Kindle Store"|politics$Sub_Cat5=="Kindle eBooks"|politics$Sub_Cat6=="Kindle Store"|politics$Sub_Cat6=="Kindle eBooks"),]
+head(politics.kindle)
+dim(politics.kindle)
 
-# oauth authentication, find consumerKey and Secret
-reqURL <- "https://api.twitter.com/oauth/request_token"
-accessURL <- "http://api.twitter.com/oauth/access_token"
-authURL <- "http://api.twitter.com/oauth/authorize"
-consumerKey <- "12345pqrst6789ABCD"
-consumerSecret <- "abcd1234EFGH5678ijkl0987MNOP6543qrst21"
-twitCred <- OAuthFactory$new(consumerKey=consumerKey,
-                             consumerSecret=consumerSecret,
-                             requestURL=reqURL,
-                             accessURL=accessURL,
-                             authURL=authURL)
-twitCred$handshake()
-registerTwitterOAuth(twitCred)
+index <- rep(0,nrow(politics))
+for (i in 1:nrow(politics)) {
+  index[i] <- isTRUE(politics$Sub_Cat3[i]=="Kindle Store"|politics$Sub_Cat3[i]=="Kindle eBooks"|politics$Sub_Cat4[i]=="Kindle Store"|politics$Sub_Cat4[i]=="Kindle eBooks"|politics$Sub_Cat5[i]=="Kindle Store"|politics$Sub_Cat5[i]=="Kindle eBooks"|politics$Sub_Cat6[i]=="Kindle Store"|politics$Sub_Cat6[i]=="Kindle eBooks")
+}
 
+w <- which(politics$Sub_Cat3=="Kindle Store"|politics$Sub_Cat3=="Kindle eBooks"|politics$Sub_Cat4=="Kindle Store"|politics$Sub_Cat4=="Kindle eBooks"|politics$Sub_Cat5=="Kindle Store"|politics$Sub_Cat5=="Kindle eBooks"|politics$Sub_Cat6=="Kindle Store"|politics$Sub_Cat6=="Kindle eBooks")
+politics[which(politics$productID=='B000FBFDY2'),]
+p <- politics[which(politics$price!='unknown'),]
+
+for (i in 1:nrow(politics)) {
+  index[i] <- is.element(politics$productID[i],politics.kindle$productID)
+}
+
+#### add the review text back 
+politics.reviews <- merge(politics,review.text,by='X')
+dim(politics.reviews)
+head(politics.reviews)
+
+politics.reviews <- politics.reviews[,-18]
+write.csv(politics.reviews,'C:/Users/vsingh/Desktop/amazon/books_politics.csv')
+
+###########################
+#### sentiment analysis ###
+###########################
+
+#### work with review text
+review.text <- read.csv('C:/Users/vsingh/Desktop/amazon/books_reviews_text.csv')
+dim(review.text)
+text <- as.character(review.text[,3])
+
+corpus <- Corpus(VectorSource(text))
+dtm <- DocumentTermMatrix(corpus)
+
+#### use tm.plugin.sentiment for sentiment analysis
+install.packages('quantmod')
+install.packages('tm')
+library(tm) 
+install.packages('C:/Users/vsingh/Desktop/amazon/tm.plugin.sentiment_0.0.1.zip', repos = NULL, type="source")
+library(tm.plugin.sentiment)
+
+#### sample code 
+install.packages("tm.lexicon.GeneralInquirer", repos="http://datacube.wu.ac.at", type="source")
+require("tm.lexicon.GeneralInquirer")
+tm_term_score(TermDocumentMatrix(corpus,
+                                 control = list(removePunctuation = TRUE)),
+              terms_in_General_Inquirer_categories("Positiv"))
+
+positive <- as.numeric(tm_term_score(dtm,terms_in_General_Inquirer_categories("Positiv"))) 
+negative <- as.numeric(tm_term_score(dtm,terms_in_General_Inquirer_categories("Negativ"))) 
+
+#### a different method from https://github.com/mjhea0/twitter-sentiment-analysis
 # define sentiment score function
-
-score.sentiment <- function(sentences, pos.words, neg.words, exc.words, .progress='none')
+score.sentiment <- function(sentences, pos.words, neg.words, .progress='none')
 {
   require(plyr)
   require(stringr)
   
   # we got a vector of sentences. plyr will handle a list or a vector as an "l" for us
   # we want a simple array of scores back, so we use "l" + "a" + "ply" = laply:
-  scores = laply(sentences, function(sentence, pos.words, neg.words, exc.words) {
+  scores = laply(sentences, function(sentence, pos.words, neg.words) {
     
     # clean up sentences with R's regex-driven global substitute, gsub():
     sentence = gsub('[[:punct:]]', '', sentence)
@@ -305,9 +203,9 @@ score.sentiment <- function(sentences, pos.words, neg.words, exc.words, .progres
     words = unlist(word.list)
     
     # exclude stop words
-    check <- match(words,exc.words)
-    exc.list <-!is.na(check)
-    words <-words[!exc.list]
+    # check <- match(words,exc.words)
+    # exc.list <-!is.na(check)
+    # words <-words[!exc.list] 
     
     # compare our words to the dictionaries of positive & negative terms
     pos.matches = match(words, pos.words)
@@ -328,10 +226,46 @@ score.sentiment <- function(sentences, pos.words, neg.words, exc.words, .progres
   return(scores.df)
 }
 
-positive <- scan('C:/Users/Jeremy/Desktop/Workspace/R/amazon/positive-words.txt',what='character',comment.char=';')
-negative <- scan('C:/Users/Jeremy/Desktop/Workspace/R/amazon/negative-words.txt',what='character',comment.char=';')
+# read word lists
+positive <- scan('C:/Users/vsingh/Desktop/amazon/positive-words.txt',what='character',comment.char=';')
+negative <- scan('C:/Users/vsingh/Desktop/amazon/negative-words.txt',what='character',comment.char=';')
 
+score <- score.sentiment(text,positive,negative)
+class(score)
+dim(score)
+score 
 
-install.packages('C:/Users/Jeremy/Desktop/Workspace/R/sentiment_0.1.tar.gz', repos = NULL, type="source")
-library(tm.plugin.sentiment)
-install.packages("quantmod")
+############################
+#### reviewer's profile ####
+############################
+
+politics <- books[which(books$Sub_Cat1==" Politics & Social Sciences"),]
+userID <- politics[,6]
+head(userID)
+userID[userID=='unknown '] <- NA
+write.table(unique(userID),'C:/Users/vsingh/Desktop/amazon/userID.txt',row.names=F,col.names=F)
+length(userID[userID!='NA'])
+length(unique(userID))
+
+require(dplyr)
+politics.group <- group_by(politics,userID)
+politics.group <- mutate(politics.group,numReviews_user=n())
+head(politics.group,10)
+
+length(books$userID[which(books$userID=='A3H6RDFFMA9MM2')])
+books[which(books$userID=='A3H6RDFFMA9MM2'),]
+books$userID[books$userID=='unknown'] <- 'NA'
+books.group <- group_by(books,userID)
+books.group <- mutate(books.group,numReviews_user=n())
+bg <- as.data.frame(books.group)
+max(bg$numReviews_user)
+head(bg,20)
+bg$userID[bg$userID=='unknown'] <- 'NA'
+bg$userID[8]
+
+length(unique(bg$userID))
+length(unique(bg$userID[bg$numReviews_user>=27]))
+userID <- unique(bg$userID[bg$numReviews_user>=27])
+userID <- as.data.frame(userID)
+dim(politics)
+length(unique(userID$userID))

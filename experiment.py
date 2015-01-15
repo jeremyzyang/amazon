@@ -1,11 +1,136 @@
-############################################################################
-#get text from webpage
+##################################################################
+#### parse product and review text and write into json format ####
+##################################################################
+
+import gzip
+import simplejson
+
+# a modified function from http://snap.stanford.edu/data/web-Amazon.html
+def parse(filename):
+  f = gzip.open(filename, 'r')
+  entry = {}
+  for l in f:
+    l = l.strip()
+    colonPos = l.find(':')
+    if colonPos == -1:
+      yield entry
+      entry = {}
+      continue
+    eName = l[:colonPos]
+    rest = l[colonPos+2:]
+    entry[eName] = rest
+  yield entry
+
+with open ("books.txt","w") as books:
+    for e in parse("C:/Users/vsingh/Desktop/amazon/Books.txt.gz"):
+        books.write(simplejson.dumps(e)+"\n")
+books.close()
+
+# read json format 
+with open ("books.txt","rb") as cell:
+    string = books.read().replace('\r\n',',')
+books.close()
+
+string = '[' + string
+string = string[:-4]
+string = string + ']'
+string[-2000:]
+
+# transform json string into data frame
+import pandas as pd # use panda to transform json string to data frame
+df = pd.read_json(string)
+df.head()
+
+
+################################
+#### parse reviewer profile ####
+################################
+import urllib2 # read HTML
+import re # regular expression
+
+url = 'http://www.amazon.com/gp/pdp/profile/A392B4BSVPD5HK'
+req = urllib2.Request(url, headers={'User-Agent' : "Magic Browser"}) 
+
+# 0. name
+name = re.findall(r'<title>(.*?)</title>',urllib2.urlopen(req).read())  
+''.join(name)
+# 1. geographic info
+geo = re.findall(r'</span></div><span class="a-size-small a-color-secondary">(.*?)\n',urllib2.urlopen(req).read())  
+''.join(geo)
+geo
+# 2. reviewer ranking
+rh = re.findall(r'<span class="a-size-large a-text-bold">(.*?)</span>',urllib2.urlopen(req).read())
+rh
+# 3. helpfulness vote
+hel = re.findall(r'<div class="a-row"><span class="a-size-small a-color-secondary">(.*?)</span>',urllib2.urlopen(req).read())
+''.join(hel)[1:-1]
+# 4. about me
+abt = re.findall(r'<span class="a-size-base"><p>(.*?)</p>',urllib2.urlopen(req).read())
+''.join(abt)
+abt
+# 5. interest (optional)
+inter = re.findall(r'<span class="a-size-small">(.*?)\n',urllib2.urlopen(req).read())
+''.join(inter)
+
+with open ("userID.txt", "rb") as f:
+    userID = f.readlines()
+f.close()
+len(userID)
+
+url = 'http://www.amazon.com/gp/pdp/profile/'
+url = url + userID[0][1:-3]
+url
+
+geo=['']*len(userID)
+rv=['']*len(userID)
+hv=['']*len(userID)
+abt=['']*len(userID)
+intt=['']*len(userID)
+
+userID[1:10][1:-3]
+'http://www.amazon.com/gp/pdp/profile/'+ userID[3][1:-3]
+
+for i in range(0,len(userID)):      
+    if userID[i][1:-3] != 'NA':
+        try: 
+            url = 'http://www.amazon.com/gp/pdp/profile/'
+            url = url + userID[i][1:-3]
+            req = urllib2.Request(url, headers={'User-Agent' : "Magic Browser"}) 
+            s1 = re.findall(r'</span></div><span class="a-size-small a-color-secondary">(.*?)\n',urllib2.urlopen(req).read())  
+            s2 = re.findall(r'<div class="a-row"><span class="a-size-small a-color-secondary">(.*?)</span>',urllib2.urlopen(req).read())
+            s3 = re.findall(r'<span class="a-size-base"><p>(.*?)</p>',urllib2.urlopen(req).read())
+            s4 = re.findall(r'<div class="a-row a-spacing-top-mini"><span class="a-size-small">(.*?)\n',urllib2.urlopen(req).read())            
+            geo[i] = ''.join(s1)
+            hv[i] = ''.join(s2)[1:-1]
+            abt[i] = ''.join(s3)
+            intt[i] = ''.join(s4)
+            continue
+        except Exception:
+            geo[i] = 'NA'      
+            hv[i]='NA'
+            abt[i]='NA'
+            intt[i]='NA'
+    else: 
+        geo[i] = 'NA'
+        hv[i]='NA'
+        abt[i]='NA'
+        intt[i]='NA'
+    
+len(rv)
+
+geo[0:10]
+hv[0:10]
+abt[0:10]
+intt[0:10]
+
+
+##############################
+#### experiment with nltk ####
+##############################
 
 from __future__ import division
 import nltk, re, pprint
 from nltk import word_tokenize
-
-
 
 file1 = open('textmining.txt','rU') # read text file
 print file1.read()
@@ -49,7 +174,6 @@ text = nltk.Text(tokens) # creat a NLTK text
 words = [w.lower() for w in text]
 vocab = sorted(set(words))
 
-#############################################
 #strings operations
 couplet = """Shall I compare thee to a Summer's day?
 Thou are more lovely and more temperate:""" # printout on different lines
@@ -118,7 +242,6 @@ cdf.tabulate()
 cdf.plot()
 
 ## normalization
-
 def stem(word): # stems
     for suffix in ['ing', 'ly', 'ed', 'ious', 'ies', 'ive', 'es', 's', 'ment']:
         if word.endswith(suffix):
@@ -140,39 +263,6 @@ words = set(nltk.corpus.genesis.words('english-kjv.txt'))
 for word in sorted(words):
     file1.write(word + "\n")
 
-# back to basic python
-
-## equality
-python =['python']
-list1 = python * 2
-    
-list1[0] == list1[1] # '==' requires the value be the same
-list1[0] is list1[1] # 'is' requires identical objects
-
-id(list1[0])
-id(list1[1])
-
-## conditionals
-
-mixed = ['cat', '', ['dog'], []]
-for element in mixed:
-    if element:
-        print(element)
-        
-animals = ['cat', 'dog']
-if 'cat' in animals:
-    print(1)
-elif 'dog' in animals: # skip the 'elif' part if the condition of 'if' is satisfied
-    print(2)
-        
-all(len(w)>2 for w in animals)
-any(len(w)>3 for w in animals)
-
-## sequence
-t = 'walk','fem',3 # tuple
-t[0]
-len(t)
-
 raw = 'Red lorry, yellow lorry, red lorry, yellow lorry.'
 text = word_tokenize(raw)
 fdist = nltk.FreqDist(text)
@@ -192,7 +282,6 @@ print (wordlens)
 wordlens.sort()
 ' '.join(w for (_, w) in wordlens) # join seperate words into one string
 
-## function
 import re 
 def get_text(file):
     """Read text from a file, normalizing whitespace and stripping HTML markup."""
@@ -200,18 +289,3 @@ def get_text(file):
     text = re.sub(r'<.*?>', ' ', text)
     text = re.sub('\s+', ' ', text)
     return text
-
-## python graphing
-import matplotlib
-
-
-## extracting text from Craigslist
-
-import urllib2
-response = urllib2.urlopen("http://www.presidency.ucsb.edu/ws/index.php?pid=101962")
-
-html = response.read()
-cl = urllib2.urlopen('http://newyork.craigslist.org/brk/mob/4723679834.html')
-cl.html = cl.read()
-
-print (cl.html)
